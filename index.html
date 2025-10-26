@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Urlaubsplaner Sachsen-Anhalt</title>
+<title>Urlaubsplaner Taxi Pfeiffer</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -324,7 +324,7 @@
 </style>
 </head>
 <body>
-<h1>Urlaubsplaner Sachsen-Anhalt</h1>
+<h1>Urlaubsplaner Taxi Pfeiffer</h1>
 
 <div id="userControls">
   <button id="addUserBtn">Mitarbeiter hinzufügen</button>
@@ -760,7 +760,7 @@ $("berechnenBtn").addEventListener("click",()=>{
     u.jahre[y].verbleibend -= tage;
     
   } else {
-    h.innerHTML=`<div class='nicht-genehmigt'>Urlaub nicht genehmigt (Überschneidung: Mehr als 3 Kollegen sind bereits in Urlaub)</div>`;
+    h.innerHTML=`<div class='nicht-genehmigt'>Urlaub nicht genehmigt (Überschneidung: 3 Kollegen sind bereits in Urlaub)</div>`;
   }
   
   savePlan(); 
@@ -785,3 +785,4 @@ renderCalendar();
 </script>
 </body>
 </html>
+
