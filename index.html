@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Urlaubsplaner Sachsen-Anhalt</title>
+<style>
+body { font-family:'Inter',sans-serif; max-width:1400px; margin:0 auto; background:#f0f4f8; padding:1rem; color:#333; }
+h1,h2 { text-align:center; color:#2c3e50; }
+label { display:block; margin-top:1rem; font-weight:600; }
+input, button, select { width:100%; box-sizing:border-box; padding:0.5rem; margin-top:0.3rem; border-radius:8px; border:1px solid #ccc; font-size:1rem; }
+button { margin-top:1rem; background-color:#2980b9; color:white; font-weight:bold; border:none; cursor:pointer; }
+button:hover { background-color:#1c5980; }
+#calendarContainer { overflow-x:auto; margin-top:2rem; border:1px solid #ccc; background:white; }
+table { border-collapse:collapse; width:max-content; border-radius:8px; overflow:hidden; }
+th,td { border:1px solid #999; padding:3px; text-align:center; font-size:0.7rem; min-width:22px; position:relative; }
+th.month-header { background:#dfe6e9; font-weight:bold; color:#2d3436; text-align:center; vertical-align: bottom; } 
+th.week-header { background:#b2bec3; color:#2d3436; font-weight:bold; }
+th.user-header { vertical-align: bottom; padding-bottom: 5px; }
+
+.weekend { background-color:#dfe6e9; }
+.feiertag { background-color:#74b9ff; }
+.ferien { background-color:#ffeaa7; }
+.urlaub { background-color:#7bed9f !important; z-index:5; position:relative; }
+.ueberschreitung { background-color:#ff7675 !important; z-index:6; position:relative; }
+td:hover::after { content: attr(data-tooltip); position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:2px 5px; font-size:0.7rem; white-space:nowrap; border-radius:3px; z-index:9999; }
+.genehmigt { border:2px solid green; padding:5px; margin-top:10px; }
+.nicht-genehmigt { border:2px solid red; padding:5px; margin-top:10px; }
+#jahresplanBlock { padding:10px; border:1px solid #ccc; border-radius:8px; margin-top:10px; background:#eaf0f5; }
+.legend { display:flex; justify-content:center; gap:10px; margin-bottom:5px; }
+.legend div { display:flex; align-items:center; gap:3px; }
+.legend span { width:15px; height:15px; display:inline-block; border:1px solid #999; }
+.legend span.ueberschreitung { background-color: #ff7675; }
+</style>
+</head>
+<body>
+<h1>Urlaubsplaner Sachsen-Anhalt</h1>
+
+<button id="addUserBtn">Mitarbeiter hinzufügen</button>
+
+<label for="yearSelect">Jahr wählen</label>
+<select id="yearSelect"></select>
+
+<label for="userSelect">Mitarbeiter wählen</label>
+<select id="userSelect"><option value="">Bitte auswählen</option></select>
+<button id="deleteUserBtn">Mitarbeiter löschen</button>
+
+<div id="jahresplanBlock">
+  <label for="gesamtInput">Gesamturlaubstage für das Jahr</label>
+  <input type="number" id="gesamtInput" />
+  <label for="restInput">Resturlaub vom Vorjahr</label>
+  <input type="number" id="restInput" readonly />
+  <label for="verbleibendInput">Verbleibende Urlaubstage</label>
+  <input type="number" id="verbleibendInput" readonly />
+</div>
+
+<h2>Aktueller Urlaubsantrag</h2>
+<label for="urlaubVonInput">Urlaub von</label>
+<input type="date" id="urlaubVonInput" disabled />
+<label for="urlaubBisInput">Urlaub bis</label>
+<input type="date" id="urlaubBisInput" disabled />
+<button id="berechnenBtn" disabled>Urlaub prüfen & eintragen</button>
+<div id="genehmigungHinweis"></div>
+
+<h2>Jahreskalender <span id="currentYearLabel"></span></h2>
+<div class="legend">
+  <div><span class="urlaub"></span> Urlaub</div>
+  <div><span class="feiertag"></span> Feiertag</div>
+  <div><span class="ferien"></span> Ferien</div>
+  <div><span class="ueberschreitung"></span> Überschneidung</div>
+  <div><span class="weekend"></span> Wochenende</div>
+</div>
+
+<div id="calendarContainer">
+  <table id="calendarTable"></table>
+</div>
+
+<button onclick="window.print()">Drucken</button>
+<button id="clearAllBtn" style="background-color:red;">Alle Daten löschen</button>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// Hilfsfunktion zur Berechnung des Ostersonntags
+function ostersonntag(year){
+  const f=Math.floor,G=year%19,C=f(year/100),H=(C-Math.floor(C/4)-Math.floor((8*C+13)/25)+19*G+15)%30,I=(H-Math.floor(H/28)*(1-Math.floor(H/28))*(29/(H+1))*Math.floor((21-G)/11))%30,J=(year+Math.floor(year/4)+I+2-C+Math.floor(C/4))%7,L=I-J,month=3+Math.floor((L+40)/44),day=L+28-31*Math.floor(month/4);
+  return new Date(year,month-1,day);
+}
+
+// Feiertage Sachsen-Anhalt (Fest und Beweglich) - KORREKT FÜR JEDES JAHR
+function getFeiertage(year){
+  const feiertage = [
+    // Feste Feiertage
+    {date: new Date(year, 0, 1), name: "Neujahr"}, // 01.01.
+    {date: new Date(year, 0, 6), name: "Heilige Drei Könige"}, // 06.01.
+    {date: new Date(year, 4, 1), name: "Tag der Arbeit"}, // 01.05.
+    {date: new Date(year, 8, 20), name: "Weltkindertag"}, // 20.09.
+    {date: new Date(year, 9, 3), name: "Tag der Deutschen Einheit"}, // 03.10.
+    {date: new Date(year, 9, 31), name: "Reformationstag"}, // 31.10.
+    {date: new Date(year, 11, 25), name: "1. Weihnachtstag"}, // 25.12.
+    {date: new Date(year, 11, 26), name: "2. Weihnachtstag"}, // 26.12.
+  ];
+
+  // Bewegliche Feiertage (Osterabhängig)
+  const o = ostersonntag(year);
+  feiertage.push(
+    {date: new Date(o.getFullYear(), o.getMonth(), o.getDate()-2), name: "Karfreitag"}, // Ostern - 2 Tage
+    {date: new Date(o.getFullYear(), o.getMonth(), o.getDate()+1), name: "Ostermontag"}, // Ostern + 1 Tag
+    {date: new Date(o.getFullYear(), o.getMonth(), o.getDate()+39), name: "Christi Himmelfahrt"}, // Ostern + 39 Tage
+    {date: new Date(o.getFullYear(), o.getMonth(), o.getDate()+50), name: "Pfingstmontag"} // Ostern + 50 Tage
+  );
+
+  return feiertage.map(d => ({ date: formatYYYYMMDD(d.date), name: d.name }));
+}
+
+// Schulferien Sachsen-Anhalt (Aktuelle Daten für 2025, 2026 und 2027 integriert)
+function getFerien(y){
+  // **ACHTUNG:** Nur die Jahre 2025, 2026 und 2027 sind hier aktuell eingetragen.
+  // Für spätere Jahre müssen die Daten manuell aktualisiert werden!
+  if (y === 2025) {
+      return [
+          {start:new Date(y, 1, 17), end:new Date(y, 1, 21), name:"Winterferien"}, // 17.02. - 21.02.
+          {start:new Date(y, 3, 14), end:new Date(y, 3, 19), name:"Osterferien"}, // 14.04. - 19.04.
+          {start:new Date(y, 4, 30), end:new Date(y, 4, 30), name:"Brückentag (Himmelfahrt)"}, // 30.05.
+          {start:new Date(y, 6, 3), end:new Date(y, 7, 13), name:"Sommerferien"}, // 03.07. - 13.08.
+          {start:new Date(y, 9, 20), end:new Date(y, 9, 30), name:"Herbstferien"}, // 20.10. - 30.10.
+          {start:new Date(y, 11, 22), end:new Date(y, 11, 31), name:"Weihnachtsferien"} // 22.12. - 31.12.
+      ];
+  } else if (y === 2026) {
+      return [
+          {start:new Date(y, 1, 9), end:new Date(y, 1, 14), name:"Winterferien"}, // 09.02. - 14.02.
+          {start:new Date(y, 3, 6), end:new Date(y, 3, 11), name:"Osterferien"}, // 06.04. - 11.04.
+          {start:new Date(y, 4, 15), end:new Date(y, 4, 15), name:"Brückentag (Himmelfahrt)"}, // 15.05.
+          {start:new Date(y, 6, 2), end:new Date(y, 7, 12), name:"Sommerferien"}, // 02.07. - 12.08.
+          {start:new Date(y, 9, 12), end:new Date(y, 9, 24), name:"Herbstferien"}, // 12.10. - 24.10.
+          {start:new Date(y, 11, 21), end:new Date(y, 11, 31), name:"Weihnachtsferien"} // 21.12. - 31.12.
+      ];
+  } else if (y === 2027) {
+      // Offizielle Ferientermine Sachsen-Anhalt 2027
+      return [
+          {start:new Date(y, 1, 1), end:new Date(y, 1, 6), name:"Winterferien"}, // 01.02. - 06.02.
+          {start:new Date(y, 2, 22), end:new Date(y, 2, 27), name:"Osterferien"}, // 22.03. - 27.03.
+          {start:new Date(y, 4, 15), end:new Date(y, 4, 22), name:"Pfingstferien"}, // 15.05. - 22.05. (Pfingsten)
+          {start:new Date(y, 6, 10), end:new Date(y, 7, 20), name:"Sommerferien"}, // 10.07. - 20.08.
+          {start:new Date(y, 9, 18), end:new Date(y, 9, 23), name:"Herbstferien"}, // 18.10. - 23.10.
+          {start:new Date(y, 11, 20), end:new Date(y, 11, 31), name:"Weihnachtsferien"} // 20.12. - 31.12.
+      ];
+  }
+  // Standard-Rückgabe, falls Daten für das gewählte Jahr noch nicht hinterlegt sind
+  return []; 
+}
+
+// --- Hilfsfunktionen für Datumsformate ---
+function formatYYYYMMDD(d){ 
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+function formatDDMMYYYY(str){ if(!str) return ""; const d=new Date(str + 'T00:00:00'); return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`; }
+
+
+// --- Globale Variablen und Initialisierung ---
+let users = JSON.parse(localStorage.getItem('urlaub_users')||'[]');
+let urlaubPlan = JSON.parse(localStorage.getItem('urlaub_plan')||'[]');
+let currentUserId = null;
+
+const currentYear = new Date().getFullYear();
+// Erweitert die Jahresauswahl bis 2027
+const maxYearWithData = 2027; 
+const yearSelect=$("yearSelect");
+for(let y=currentYear; y<=Math.max(currentYear, maxYearWithData); y++){ 
+  if (!yearSelect.querySelector(`option[value="${y}"]`)) {
+    let o=document.createElement("option"); o.value=y; o.textContent=y; yearSelect.appendChild(o); 
+  }
+}
+yearSelect.value=currentYear; 
+
+// --- Speichern und Laden ---
+function saveUsers(){localStorage.setItem('urlaub_users',JSON.stringify(users));}
+function savePlan(){localStorage.setItem('urlaub_plan',JSON.stringify(urlaubPlan));}
+
+function drawUserList(){
+  $("userSelect").innerHTML='<option value="">Bitte auswählen</option>';
+  users.forEach(u=>{ let o=document.createElement("option"); o.value=u.id; o.textContent=u.name; $("userSelect").appendChild(o); });
+  disableFields(); updateUrlaubsfelder(); renderCalendar();
+}
+
+function disableFields(){["urlaubVonInput","urlaubBisInput","berechnenBtn"].forEach(id=>$(id).disabled=true);}
+function enableFields(){["urlaubVonInput","urlaubBisInput","berechnenBtn"].forEach(id=>$(id).disabled=false);}
+function getUser(){return users.find(u=>u.id===currentUserId);}
+
+function updateUrlaubsfelder(){
+  const u=getUser(); if(!u){$("gesamtInput").value=""; $("restInput").value=""; $("verbleibendInput").value=""; return;}
+  const y=parseInt($("yearSelect").value);
+  if(!u.jahre) u.jahre={};
+  
+  if(!u.jahre[y]){
+    u.jahre[y]={gesamt:u.gesamt||30, rest:u.rest||0, verbleibend:(u.gesamt||30)+(u.rest||0)};
+  } else {
+    // Verbleibend neu berechnen: Gesamt + Rest - genommene Arbeitstage
+    u.jahre[y].verbleibend = u.jahre[y].gesamt + u.jahre[y].rest - berechneGenutzteTage(u.name, y);
+  }
+  
+  $("gesamtInput").value=u.jahre[y].gesamt;
+  $("restInput").value=u.jahre[y].rest;
+  $("verbleibendInput").value=u.jahre[y].verbleibend;
+}
+
+// Berechnet die bereits genommenen Urlaubstage (Arbeitstage) eines Mitarbeiters für das Jahr
+function berechneGenutzteTage(userName, year){
+    let genutzteTage = 0;
+    const urlaube = urlaubPlan.filter(e => e.name === userName && (new Date(e.von).getFullYear() === year || new Date(e.bis).getFullYear() === year));
+
+    urlaube.forEach(e => {
+        genutzteTage += berechneUrlaubstage(e.von, e.bis);
+    });
+    return genutzteTage;
+}
+
+// Zählt nur Arbeitstage, schließt Feiertage und Wochenenden aus!
+function berechneUrlaubstage(vonStr, bisStr){
+    const year = parseInt($("yearSelect").value);
+    const feiertageArray = getFeiertage(year).map(f => f.date); 
+    
+    let v = new Date(vonStr + 'T00:00:00'); 
+    let b = new Date(bisStr + 'T00:00:00');
+    let tage=0;
+    
+    // Iteration bis einschließlich Enddatum
+    for(let d=new Date(v); d.getTime() <= b.getTime(); d.setDate(d.getDate()+1)){
+        const dayStr = formatYYYYMMDD(d);
+        
+        // Sonntag (0) und Samstag (6) ausschließen
+        const isArbeitstag = d.getDay() !== 0 && d.getDay() !== 6;
+        
+        // Feiertage ausschließen
+        const isKeinFeiertag = !feiertageArray.includes(dayStr);
+
+        // Zähle nur Arbeitstage, die KEIN Feiertag sind
+        if(isArbeitstag && isKeinFeiertag) {
+            tage++;
+        }
+    }
+    return tage;
+}
+
+
+// --- Kalender-Rendering ---
+function renderCalendar(){
+  const year=parseInt($("yearSelect").value);
+  $("currentYearLabel").textContent=`(${year})`;
+  const feiertage=getFeiertage(year); 
+  const ferien=getFerien(year);
+  const table=$("calendarTable");
+  table.innerHTML="";
+  if(!users.length) return;
+
+  const dateStart = new Date(year, 0, 1);
+  const dateEnd = new Date(year + 1, 0, 1);
+  const daysInYear = (dateEnd.getTime() - dateStart.getTime()) / (1000 * 60 * 60 * 24);
+
+  // 1. Monats-Header
+  const monthRow=document.createElement("tr");
+  let mth=document.createElement("th"); mth.textContent="Mitarbeiter"; mth.rowSpan=3; mth.className="month-header user-header"; monthRow.appendChild(mth);
+  for(let m=0;m<12;m++){
+    let days=new Date(year,m+1,0).getDate();
+    let td=document.createElement("th"); td.colSpan=days; td.className="month-header";
+    td.textContent=new Date(year,m).toLocaleString("de-DE",{month:"long"});
+    monthRow.appendChild(td);
+  }
+  table.appendChild(monthRow);
+
+  // 2. Wochen-Header (KW) und 3. Tages-Header (Tag)
+  const weekRow=document.createElement("tr");
+  const headerRow=document.createElement("tr");
+
+  let currentKWColspan = 0;
+  for(let i = 0; i < daysInYear; i++) {
+    const d = new Date(year, 0, i + 1); 
+    
+    // KW-Logik: Starte KW am Montag oder am 1. Januar
+    if(d.getDay() === 1 || i === 0) { 
+        if (weekRow.lastChild && i > 0) { 
+            weekRow.lastChild.colSpan = currentKWColspan;
+        }
+        let tdKW = document.createElement("th"); 
+        tdKW.className="week-header"; 
+        tdKW.textContent=getWeek(d); 
+        weekRow.appendChild(tdKW);
+        currentKWColspan = 1;
+    } else {
+        currentKWColspan++;
+    }
+
+    // Tages-Header
+    let th = document.createElement("th"); 
+    th.textContent = d.getDate(); 
+    headerRow.appendChild(th);
+  }
+  // Korrigiere Colspan für die letzte KW
+  if (weekRow.lastChild) {
+      weekRow.lastChild.colSpan = currentKWColspan;
+  }
+  
+  table.appendChild(weekRow);
+  table.appendChild(headerRow);
+
+  // 4. Mitarbeiter-Zeilen
+  users.forEach(u=>{
+    const tr=document.createElement("tr");
+    let tdName=document.createElement("td"); tdName.textContent=u.name; tr.appendChild(tdName);
+    
+    // Iteration über jeden Tag des Jahres
+    for(let i = 0; i < daysInYear; i++){
+      const d=new Date(year, 0, i + 1); 
+      const td=document.createElement("td");
+      const dayStr = formatYYYYMMDD(d); 
+
+      let tip="";
+
+      // Wochenenden
+      if(d.getDay()===0||d.getDay()===6) {
+        td.classList.add("weekend");
+        tip = "Wochenende";
+      }
+
+      // Feiertage
+      const feiertagObj = feiertage.find(f => f.date === dayStr);
+      if(feiertagObj) {
+        td.classList.add("feiertag");
+        tip = feiertagObj.name;
+      }
+      
+      // Ferien
+      const fobj=ferien.find(f=>dayStr>=formatYYYYMMDD(f.start) && dayStr<=formatYYYYMMDD(f.end)); 
+      if(fobj) {
+        td.classList.add("ferien");
+        if(feiertagObj) { tip += " + " + fobj.name; } else { tip = fobj.name; }
+      }
+      
+      // Urlaub
+      const urlaub=urlaubPlan.filter(e=>e.name===u.name && dayStr>=e.von && dayStr<=e.bis);
+      if(urlaub.length) {
+        td.classList.add("urlaub");
+        if(tip) { tip = "Urlaub (" + tip + ")"; } else { tip = "Urlaub"; }
+      }
+
+      td.setAttribute("data-tooltip",tip);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  });
+}
+
+// Hilfsfunktion zur Berechnung der Kalenderwoche (ISO 8601)
+function getWeek(d){ d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7)); const ystart=new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil((((d-ystart)/86400000)+1)/7); }
+
+// --- Event Listener ---
+$("userSelect").addEventListener("change",()=>{
+  currentUserId=$("userSelect").value; 
+  currentUserId ? enableFields() : disableFields(); 
+  updateUrlaubsfelder();
+});
+
+$("addUserBtn").addEventListener("click",()=>{
+  let n=prompt("Name des neuen Mitarbeiters?"); if(!n) return;
+  let g=parseInt(prompt("Gesamturlaub für dieses Jahr? (z.B. 30)"))||30;
+  let r=parseInt(prompt("Resturlaub vom Vorjahr? (z.B. 0)"))||0;
+  let id=Date.now().toString(); 
+  let y=parseInt($("yearSelect").value);
+  
+  const newUser = {id, name:n, gesamt:g, rest:r, jahre:{}};
+  newUser.jahre[y] = {gesamt:g, rest:r, verbleibend:g+r};
+  
+  users.push(newUser);
+  saveUsers(); 
+  drawUserList();
+});
+
+$("deleteUserBtn").addEventListener("click",()=>{
+  if(!currentUserId)return;
+  const u = getUser();
+  if(!confirm(`Mitarbeiter ${u.name} wirklich löschen? Alle zugehörigen Urlaubsanträge werden entfernt.`))return; 
+  
+  urlaubPlan = urlaubPlan.filter(e => e.name !== u.name);
+  savePlan();
+
+  users=users.filter(usr=>usr.id!==currentUserId); 
+  saveUsers(); 
+  currentUserId = null;
+  drawUserList();
+});
+
+$("gesamtInput").addEventListener("input",()=>{
+  const u=getUser(); if(!u)return; 
+  const y=parseInt($("yearSelect").value); 
+  
+  u.jahre[y].gesamt = parseInt($("gesamtInput").value)||0; 
+  saveUsers(); 
+  updateUrlaubsfelder(); 
+});
+
+// Urlaubsantrag prüfen und eintragen
+$("berechnenBtn").addEventListener("click",()=>{
+  const u=getUser(); if(!u) return;
+  const v=$("urlaubVonInput").value,b=$("urlaubBisInput").value;
+  if(!v||!b){alert("Bitte Start- und Enddatum wählen"); return;}
+
+  const y=parseInt($("yearSelect").value);
+  const tage=berechneUrlaubstage(v,b); 
+  
+  if(tage <= 0) {
+      $("genehmigungHinweis").innerHTML=`<div class='genehmigt'>Antrag nicht notwendig (0 Tage Arbeitstage)</div>`;
+      renderCalendar(); 
+      return;
+  }
+
+  // 1. Prüfung: Sind noch genug Tage vorhanden?
+  if(u.jahre[y].verbleibend < tage) {
+      alert(`Antrag über ${tage} Tage kann nicht genehmigt werden, da nur noch ${u.jahre[y].verbleibend} Tage verbleiben.`);
+      $("genehmigungHinweis").innerHTML=`<div class='nicht-genehmigt'>Antrag gescheitert (Nicht genug Tage)</div>`;
+      return;
+  }
+
+  // 2. Prüfung: Überschneidung (Maximal 3 andere Kollegen gleichzeitig in Urlaub)
+  let genehmigt=true;
+  const s = new Date(v + 'T00:00:00'), e = new Date(b + 'T00:00:00');
+
+  for(let d=new Date(s); d.getTime() <= e.getTime(); d.setDate(d.getDate()+1)){
+    const dayStr = formatYYYYMMDD(d);
+    
+    let count=urlaubPlan.filter(ev => { 
+        return ev.name !== u.name && dayStr >= ev.von && dayStr <= ev.bis; 
+    }).length;
+    
+    if(count >= 3){ 
+      genehmigt=false; 
+      break; 
+    }
+  }
+  
+  const h=$("genehmigungHinweis");
+  if(genehmigt){
+    h.innerHTML=`<div class='genehmigt'>Urlaub genehmigt: ${formatDDMMYYYY(v)} bis ${formatDDMMYYYY(b)} (${tage} Tage)</div>`;
+    
+    urlaubPlan.push({name:u.name,von:v,bis:b});
+    u.jahre[y].verbleibend -= tage;
+    
+  } else {
+    h.innerHTML=`<div class='nicht-genehmigt'>Urlaub nicht genehmigt (Überschneidung: Mehr als 3 Kollegen sind bereits in Urlaub)</div>`;
+  }
+  
+  savePlan(); 
+  saveUsers(); 
+  updateUrlaubsfelder(); 
+  renderCalendar();
+});
+
+$("yearSelect").addEventListener("change",()=>{updateUrlaubsfelder(); renderCalendar();});
+
+$("clearAllBtn").addEventListener("click",()=>{
+  if(confirm("ACHTUNG: Alle gespeicherten Daten (Mitarbeiter und Pläne) wirklich unwiederbringlich löschen?")){ 
+    localStorage.removeItem('urlaub_users'); 
+    localStorage.removeItem('urlaub_plan'); 
+    localStorage.removeItem('urlaub_lastyear');
+    location.reload();
+  }
+});
+
+drawUserList(); 
+renderCalendar();
+</script>
+</body>
+</html>
