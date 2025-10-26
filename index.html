@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Urlaubsplaner Sachsen-Anhalt</title>
+<title>Urlaubsplaner Taxi Pfeiffer</title>
 <style>
 body { font-family:'Inter',sans-serif; max-width:1400px; margin:0 auto; background:#f0f4f8; padding:1rem; color:#333; }
 h1,h2 { text-align:center; color:#2c3e50; }
@@ -34,7 +34,7 @@ td:hover::after { content: attr(data-tooltip); position:absolute; bottom:100%; l
 </style>
 </head>
 <body>
-<h1>Urlaubsplaner Sachsen-Anhalt</h1>
+<h1>Urlaubsplaner Taxi Pfeiffer</h1>
 
 <button id="addUserBtn">Mitarbeiter hinzufügen</button>
 
@@ -423,7 +423,7 @@ $("berechnenBtn").addEventListener("click",()=>{
       return;
   }
 
-  // 2. Prüfung: Überschneidung (Maximal 3 andere Kollegen gleichzeitig in Urlaub)
+  // 2. Prüfung: Überschneidung (3 andere Kollegen bereits gleichzeitig in Urlaub)
   let genehmigt=true;
   const s = new Date(v + 'T00:00:00'), e = new Date(b + 'T00:00:00');
 
@@ -472,4 +472,5 @@ drawUserList();
 renderCalendar();
 </script>
 </body>
+
 </html>
