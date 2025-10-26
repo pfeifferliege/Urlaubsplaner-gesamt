@@ -2,81 +2,386 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Urlaubsplaner Taxi Pfeiffer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Urlaubsplaner Sachsen-Anhalt</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-body { font-family:'Inter',sans-serif; max-width:1400px; margin:0 auto; background:#f0f4f8; padding:1rem; color:#333; }
-h1,h2 { text-align:center; color:#2c3e50; }
-label { display:block; margin-top:1rem; font-weight:600; }
-input, button, select { width:100%; box-sizing:border-box; padding:0.5rem; margin-top:0.3rem; border-radius:8px; border:1px solid #ccc; font-size:1rem; }
-button { margin-top:1rem; background-color:#2980b9; color:white; font-weight:bold; border:none; cursor:pointer; }
-button:hover { background-color:#1c5980; }
-#calendarContainer { overflow-x:auto; margin-top:2rem; border:1px solid #ccc; background:white; }
-table { border-collapse:collapse; width:max-content; border-radius:8px; overflow:hidden; }
-th,td { border:1px solid #999; padding:3px; text-align:center; font-size:0.7rem; min-width:22px; position:relative; }
-th.month-header { background:#dfe6e9; font-weight:bold; color:#2d3436; text-align:center; vertical-align: bottom; } 
-th.week-header { background:#b2bec3; color:#2d3436; font-weight:bold; }
-th.user-header { vertical-align: bottom; padding-bottom: 5px; }
+  :root {
+    --primary-color: #6a0572; /* Dark Purple */
+    --secondary-color: #ab09a8; /* Lighter Purple */
+    --accent-color: #ff527b; /* Pink */
+    --text-color: #333;
+    --light-bg: #f7f3f9;
+    --dark-bg: #e0d9e4;
+    --white: #ffffff;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --border-radius: 12px;
+  }
 
-.weekend { background-color:#dfe6e9; }
-.feiertag { background-color:#74b9ff; }
-.ferien { background-color:#ffeaa7; }
-.urlaub { background-color:#7bed9f !important; z-index:5; position:relative; }
-.ueberschreitung { background-color:#ff7675 !important; z-index:6; position:relative; }
-td:hover::after { content: attr(data-tooltip); position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:2px 5px; font-size:0.7rem; white-space:nowrap; border-radius:3px; z-index:9999; }
-.genehmigt { border:2px solid green; padding:5px; margin-top:10px; }
-.nicht-genehmigt { border:2px solid red; padding:5px; margin-top:10px; }
-#jahresplanBlock { padding:10px; border:1px solid #ccc; border-radius:8px; margin-top:10px; background:#eaf0f5; }
-.legend { display:flex; justify-content:center; gap:10px; margin-bottom:5px; }
-.legend div { display:flex; align-items:center; gap:3px; }
-.legend span { width:15px; height:15px; display:inline-block; border:1px solid #999; }
-.legend span.ueberschreitung { background-color: #ff7675; }
+  body {
+    font-family: 'Poppins', sans-serif;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #e0f2f7 0%, #fefefe 100%);
+    padding: 1.5rem;
+    color: var(--text-color);
+    line-height: 1.6;
+  }
+
+  h1, h2 {
+    text-align: center;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  h2 {
+    font-size: 1.8rem;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 0.5rem;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2rem;
+  }
+
+  label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.4rem;
+  }
+
+  input[type="date"],
+  input[type="number"],
+  select,
+  button {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--dark-bg);
+    font-size: 1rem;
+    background-color: var(--white);
+    color: var(--text-color);
+    transition: all 0.3s ease;
+  }
+
+  input[type="date"]:focus,
+  input[type="number"]:focus,
+  select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(255, 82, 123, 0.2);
+    outline: none;
+  }
+
+  button {
+    margin-top: 1.5rem;
+    background-color: var(--secondary-color);
+    color: var(--white);
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+
+  button:hover {
+    background-color: var(--primary-color);
+    transform: translateY(-2px);
+  }
+
+  button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  #addUserBtn {
+    background-color: #28a745; /* Green for add */
+  }
+  #addUserBtn:hover {
+    background-color: #218838;
+  }
+
+  #deleteUserBtn {
+    background-color: #dc3545; /* Red for delete */
+  }
+  #deleteUserBtn:hover {
+    background-color: #c82333;
+  }
+
+  #berechnenBtn {
+    background-color: #007bff; /* Blue for calculate */
+  }
+  #berechnenBtn:hover {
+    background-color: #0056b3;
+  }
+
+  #clearAllBtn {
+    background-color: #6c757d; /* Grey for clear all */
+    margin-top: 2rem;
+  }
+  #clearAllBtn:hover {
+    background-color: #5a6268;
+  }
+
+  #jahresplanBlock, #currentApplicationBlock {
+    background-color: var(--white);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-top: 2rem;
+  }
+
+  #jahresplanBlock {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  #jahresplanBlock div {
+    margin-bottom: 0.5rem;
+  }
+
+  #calendarContainer {
+    overflow-x: auto;
+    margin-top: 2rem;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1rem;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: max-content;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+
+  th, td {
+    border: 1px solid #e0e0e0;
+    padding: 8px 5px;
+    text-align: center;
+    font-size: 0.8rem;
+    min-width: 30px; /* Slightly wider for readability */
+    position: relative;
+    white-space: nowrap;
+  }
+
+  th.month-header {
+    background: #c39bd3; /* Lighter purple for month headers */
+    color: var(--white);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  th.week-header {
+    background: #d7bde2; /* Even lighter purple for week headers */
+    color: var(--primary-color);
+    font-weight: 600;
+  }
+
+  th.user-header {
+    vertical-align: middle;
+    padding: 10px;
+    font-size: 1rem;
+  }
+
+  /* Calendar cell coloring */
+  .weekend { background-color: #f2e7f8; } /* Lightest purple */
+  .feiertag { background-color: #a7d9f7; } /* Light Blue */
+  .ferien { background-color: #f7e0a7; } /* Light Orange */
+  .urlaub { background-color: #92e6b7 !important; color: #333; } /* Light Green, !important to override other colors */
+  .ueberschreitung { background-color: #ff7675 !important; color: white; font-weight: bold; } /* Red */
+
+  td:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    border-radius: 5px;
+    z-index: 9999;
+    pointer-events: none; /* Allows click-through */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  td:hover::after {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .genehmigt {
+    border: 2px solid #28a745; /* Green border */
+    background-color: #e6ffe6; /* Light green background */
+    color: #28a745;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+  }
+  .nicht-genehmigt {
+    border: 2px solid #dc3545; /* Red border */
+    background-color: #ffe6e6; /* Light red background */
+    color: #dc3545;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+  }
+  .legend div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-color);
+  }
+  .legend span {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .legend span.ueberschreitung {
+    background-color: #ff7675;
+    border: none;
+  }
+
+  #userControls {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #userControls > div {
+    flex-grow: 1;
+    min-width: 200px;
+  }
+  #userControls button {
+    margin-top: 0;
+    width: auto;
+    flex-grow: 1;
+    padding: 0.8rem 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    body {
+      padding: 1rem;
+    }
+    h1 {
+      font-size: 2rem;
+    }
+    h2 {
+      font-size: 1.5rem;
+    }
+    #userControls {
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    #userControls button {
+      width: 100%;
+    }
+    #jahresplanBlock {
+      grid-template-columns: 1fr;
+    }
+    .legend {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+  }
+
 </style>
 </head>
 <body>
-<h1>Urlaubsplaner Taxi Pfeiffer</h1>
+<h1>Urlaubsplaner Sachsen-Anhalt</h1>
 
-<button id="addUserBtn">Mitarbeiter hinzufügen</button>
-
-<label for="yearSelect">Jahr wählen</label>
-<select id="yearSelect"></select>
-
-<label for="userSelect">Mitarbeiter wählen</label>
-<select id="userSelect"><option value="">Bitte auswählen</option></select>
-<button id="deleteUserBtn">Mitarbeiter löschen</button>
-
-<div id="jahresplanBlock">
-  <label for="gesamtInput">Gesamturlaubstage für das Jahr</label>
-  <input type="number" id="gesamtInput" />
-  <label for="restInput">Resturlaub vom Vorjahr</label>
-  <input type="number" id="restInput" readonly />
-  <label for="verbleibendInput">Verbleibende Urlaubstage</label>
-  <input type="number" id="verbleibendInput" readonly />
+<div id="userControls">
+  <button id="addUserBtn">Mitarbeiter hinzufügen</button>
+  <div>
+    <label for="yearSelect">Jahr wählen</label>
+    <select id="yearSelect"></select>
+  </div>
+  <div>
+    <label for="userSelect">Mitarbeiter wählen</label>
+    <select id="userSelect"><option value="">Bitte auswählen</option></select>
+  </div>
+  <button id="deleteUserBtn">Mitarbeiter löschen</button>
 </div>
 
-<h2>Aktueller Urlaubsantrag</h2>
-<label for="urlaubVonInput">Urlaub von</label>
-<input type="date" id="urlaubVonInput" disabled />
-<label for="urlaubBisInput">Urlaub bis</label>
-<input type="date" id="urlaubBisInput" disabled />
-<button id="berechnenBtn" disabled>Urlaub prüfen & eintragen</button>
-<div id="genehmigungHinweis"></div>
+<div id="jahresplanBlock">
+  <div>
+    <label for="gesamtInput">Gesamturlaubstage für das Jahr</label>
+    <input type="number" id="gesamtInput" />
+  </div>
+  <div>
+    <label for="restInput">Resturlaub vom Vorjahr</label>
+    <input type="number" id="restInput" readonly />
+  </div>
+  <div>
+    <label for="verbleibendInput">Verbleibende Urlaubstage</label>
+    <input type="number" id="verbleibendInput" readonly />
+  </div>
+</div>
+
+<div id="currentApplicationBlock">
+  <h2>Aktueller Urlaubsantrag</h2>
+  <label for="urlaubVonInput">Urlaub von</label>
+  <input type="date" id="urlaubVonInput" disabled />
+  <label for="urlaubBisInput">Urlaub bis</label>
+  <input type="date" id="urlaubBisInput" disabled />
+  <button id="berechnenBtn" disabled>Urlaub prüfen & eintragen</button>
+  <div id="genehmigungHinweis"></div>
+</div>
+
 
 <h2>Jahreskalender <span id="currentYearLabel"></span></h2>
 <div class="legend">
-  <div><span class="urlaub"></span> Urlaub</div>
-  <div><span class="feiertag"></span> Feiertag</div>
-  <div><span class="ferien"></span> Ferien</div>
+  <div><span style="background-color: #92e6b7;"></span> Urlaub</div>
+  <div><span style="background-color: #a7d9f7;"></span> Feiertag</div>
+  <div><span style="background-color: #f7e0a7;"></span> Ferien</div>
   <div><span class="ueberschreitung"></span> Überschneidung</div>
-  <div><span class="weekend"></span> Wochenende</div>
+  <div><span style="background-color: #f2e7f8;"></span> Wochenende</div>
 </div>
 
 <div id="calendarContainer">
   <table id="calendarTable"></table>
 </div>
 
-<button onclick="window.print()">Drucken</button>
-<button id="clearAllBtn" style="background-color:red;">Alle Daten löschen</button>
+<div style="text-align: center; margin-top: 3rem;">
+  <button onclick="window.print()">Drucken</button>
+  <button id="clearAllBtn">Alle Daten löschen</button>
+</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -361,6 +666,7 @@ $("userSelect").addEventListener("change",()=>{
   currentUserId=$("userSelect").value; 
   currentUserId ? enableFields() : disableFields(); 
   updateUrlaubsfelder();
+  renderCalendar(); // Rerender, um ggf. Überschneidungen zu aktualisieren
 });
 
 $("addUserBtn").addEventListener("click",()=>{
@@ -376,6 +682,12 @@ $("addUserBtn").addEventListener("click",()=>{
   users.push(newUser);
   saveUsers(); 
   drawUserList();
+  // Setzt den neuen Benutzer automatisch als ausgewählt
+  $("userSelect").value = id;
+  currentUserId = id;
+  enableFields();
+  updateUrlaubsfelder();
+  renderCalendar();
 });
 
 $("deleteUserBtn").addEventListener("click",()=>{
@@ -423,7 +735,7 @@ $("berechnenBtn").addEventListener("click",()=>{
       return;
   }
 
-  // 2. Prüfung: Überschneidung (3 andere Kollegen bereits gleichzeitig in Urlaub)
+  // 2. Prüfung: Überschneidung (Maximal 3 andere Kollegen gleichzeitig in Urlaub)
   let genehmigt=true;
   const s = new Date(v + 'T00:00:00'), e = new Date(b + 'T00:00:00');
 
@@ -472,5 +784,4 @@ drawUserList();
 renderCalendar();
 </script>
 </body>
-
 </html>
